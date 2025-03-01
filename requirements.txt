@@ -51,5 +51,5 @@ sqlalchemy>=2.0.0    # 数据库ORM
 fuzzywuzzy>=0.18.0
 python-Levenshtein>=0.12.2
 redis>=4.5.5         # 缓存
-fastapi-cache2>=0.2.0
+fastapi==0.109.2  # 确保版本兼容性
 pandas>=1.5.0        # 数据处理

@@ -1,3 +1,4 @@
+from fastapi.middleware.cors import CORSMiddleware 
 import os
 import joblib
 import requests
