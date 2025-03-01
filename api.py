@@ -9,9 +9,9 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from fuzzywuzzy import fuzz
-from fastapi_cache import FastAPICache, Coder
-from fastapi_cache.backends.redis import RedisBackend
-from fastapi_cache.decorator import cache
+from fastapi_cache2 import FastAPICache, Coder
+from fastapi_cache2.backends.redis import RedisBackend
+from fastapi_cache2.decorator import cache
 from redis import asyncio as aioredis
 from dotenv import load_dotenv
 import pandas as pd
