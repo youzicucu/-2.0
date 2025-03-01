@@ -25,3 +25,4 @@ aiohttp==3.9.5  # 异步请求支持
 # 其他工具
 apscheduler==3.10.1  # 定时任务
 python-multipart==0.0.9  # 表单处理
+Jinja2>=3.0.0
