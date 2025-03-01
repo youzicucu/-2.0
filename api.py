@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from fuzzywuzzy import fuzz
 from fastapi_cache2 import FastAPICache
 from fastapi_cache2.backends.redis import RedisBackend
-from fastapi_cache.coder import Coder
+from fastapi_cache2.coder import Coder
 from redis import asyncio as aioredis
 from dotenv import load_dotenv
 import pandas as pd
