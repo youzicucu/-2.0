@@ -11,7 +11,7 @@ numpy==1.26.4  # pandas依赖项
 
 # 缓存与数据库
 redis==5.0.1
-fastapi-cache2==0.2.2  # 重要：必须使用此版本
+fastapi-cache
 
 # 文本处理
 fuzzywuzzy==0.18.0
