@@ -9,9 +9,9 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from fuzzywuzzy import fuzz
-from fastapi_cache2 import FastAPICache, Coder
-from fastapi_cache2.backends.redis import RedisBackend
-from fastapi_cache2.decorator import cache
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.redis import RedisBackend
+from fastapi_cache.coder import Coder
 from redis import asyncio as aioredis
 from dotenv import load_dotenv
 import pandas as pd
@@ -35,13 +35,14 @@ app.add_middleware(
 )
 
 # 初始化Redis缓存
+@app.on_event("startup")
 async def startup():
     redis = aioredis.from_url(os.getenv("REDIS_URL"))
     FastAPICache.init(
         RedisBackend(redis),
         prefix="football-cache",
-        coder=Coder,  # 添加编码器配置
-        expire=3600    # 默认缓存时间（秒）
+        coder=Coder,
+        expire=3600
     )
 # ====================
 # 配置部分
