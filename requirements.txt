@@ -36,12 +36,13 @@ urllib3==2.3.0
 w3lib==2.3.1
 zope.interface==7.2
 scipy
-numpy==1.23.5
-pandas==1.5.3
-joblib==1.4.2
 fastapi>=0.68.0
 uvicorn>=0.15.0
 joblib>=1.4.2
 scikit-learn==1.5.1
-python-multipart
 Jinja2>=3.0.0
+requests>=2.26.0
+python-dateutil>=2.8.2
+numpy>=1.21.0
+pandas==1.5.3
+python-dateutil>=2.8.2
