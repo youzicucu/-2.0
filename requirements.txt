@@ -53,3 +53,5 @@ python-Levenshtein>=0.12.2
 redis>=4.5.5         # 缓存
 fastapi==0.109.2  # 确保版本兼容性
 pandas>=1.5.0        # 数据处理
+# 替换原来的fastapi-cache相关行
+fastapi-cache==0.3.1  # 正确包名
