@@ -256,7 +256,6 @@ async def home(request: Request):
 
 @app.post("/predict/teams")
 async def predict_with_teams(data: TeamPredictionRequest, response: Response):
-    # 确保响应头指定 UTF-8 编码
     response.headers["Content-Type"] = "application/json; charset=utf-8"
     
     if not model:
