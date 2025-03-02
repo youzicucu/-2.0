@@ -4,7 +4,7 @@ import joblib
 import requests
 import numpy as np
 from datetime import datetime, timedelta
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
@@ -12,6 +12,11 @@ from fuzzywuzzy import fuzz
 from cachetools import TTLCache
 from dotenv import load_dotenv
 import pandas as pd
+import logging
+
+# 配置日志
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # 加载环境变量
 load_dotenv()
@@ -61,51 +66,75 @@ class TeamPredictionRequest(BaseModel):
 model_path = os.path.join(os.path.dirname(__file__), "football_model.pkl")
 try:
     model = joblib.load(model_path)
-    print("✅ 模型加载成功")
+    logger.info("✅ 模型加载成功")
 except Exception as e:
-    print(f"❌ 模型加载失败: {str(e)}")
+    logger.error(f"❌ 模型加载失败: {str(e)}")
     model = None
 
 # 加载中文别名
 def load_aliases():
-    try:
-        df = pd.read_csv("data/team_aliases.csv", encoding="utf-8")
-        return {
-            row['zh_name']: {
-                'id': row['id'],
-                'aliases': row['aliases'].split('、'),
-                'en_name': row['en_name']
+    file_path = "data/team_aliases.csv"
+    encodings = ['utf-8', 'utf-8-sig', 'latin1', 'gbk']
+    for encoding in encodings:
+        try:
+            df = pd.read_csv(file_path, encoding=encoding)
+            logger.info(f"✅ 使用 {encoding} 编码成功加载 team_aliases.csv")
+            aliases_dict = {
+                row['zh_name']: {
+                    'id': row['id'],
+                    'aliases': row['aliases'].split('、') if pd.notna(row['aliases']) else [],
+                    'en_name': row['en_name']
+                }
+                for _, row in df.iterrows()
             }
-            for _, row in df.iterrows()
-        }
-    except FileNotFoundError:
-        print("❌ 未找到 team_aliases.csv 文件")
-        return {}
+            logger.debug(f"别名表内容: {aliases_dict}")
+            return aliases_dict
+        except UnicodeDecodeError as e:
+            logger.error(f"❌ 使用 {encoding} 编码失败: {str(e)}")
+        except FileNotFoundError:
+            logger.error(f"❌ 未找到 {file_path} 文件")
+            return {}
+        except Exception as e:
+            logger.error(f"❌ 加载 {file_path} 时发生未知错误: {str(e)}")
+            return {}
+    raise ValueError(f"无法以任何编码读取 {file_path}，请检查文件内容和编码")
 
 ALIAS_MAPPING = load_aliases()
 
 # 中文转换模块
 def chinese_to_en(team_name: str) -> str:
-    team_name = team_name.strip()  # 移除前后空格
+    team_name = team_name.strip()
+    logger.info(f"尝试转换球队名称: {team_name}")
     for zh_name, info in ALIAS_MAPPING.items():
         if team_name == zh_name or team_name in info['aliases']:
+            logger.info(f"找到精确匹配: {team_name} -> {info['en_name']}")
             return info['en_name']
     # 模糊匹配
     best_score = 0
     best_match = None
     for zh_name, info in ALIAS_MAPPING.items():
-        for alias in [zh_name] + info['aliases']:
+        aliases = [zh_name] + info['aliases']
+        for alias in aliases:
             score = fuzz.ratio(team_name, alias)
             if score > best_score and score > 75:
                 best_score = score
                 best_match = info['en_name']
-    return best_match or team_name
+    if best_match:
+        logger.info(f"找到模糊匹配: {team_name} -> {best_match} (得分: {best_score})")
+        return best_match
+    logger.error(f"未找到匹配球队: {team_name}，请检查输入名称或别名表")
+    raise ValueError(f"无法将 '{team_name}' 转换为英文名称，请检查输入或更新别名表")
 
 # 多源球队查询
 async def search_team(team_name: str) -> dict:
-    en_name = chinese_to_en(team_name)
+    try:
+        en_name = chinese_to_en(team_name)
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+
     cache_key = f"team:{en_name}"
     if cache_key in cache:
+        logger.info(f"从缓存中获取球队信息: {en_name}")
         return cache[cache_key]
 
     sources = [search_football_data, search_api_football]
@@ -113,10 +142,11 @@ async def search_team(team_name: str) -> dict:
         try:
             result = await source(en_name)
             if result:
+                logger.info(f"从 {source.__name__} 获取球队信息成功: {en_name}")
                 cache[cache_key] = result
                 return result
         except Exception as e:
-            print(f"搜索失败: {str(e)}")
+            logger.error(f"从 {source.__name__} 获取球队信息失败: {str(e)}")
             continue
     raise HTTPException(404, f"未找到球队: {team_name}")
 
@@ -130,7 +160,9 @@ async def search_football_data(name: str):
     if response.status_code == 200:
         teams = response.json().get('teams', [])
         if teams:
+            logger.debug(f"Football Data API 返回: {teams[0]}")
             return process_football_data(teams[0])
+    logger.warning(f"Football Data API 未找到球队: {name}, 状态码: {response.status_code}")
     return None
 
 async def search_api_football(name: str):
@@ -143,7 +175,9 @@ async def search_api_football(name: str):
     if response.status_code == 200:
         data = response.json().get('response', [])
         if data:
+            logger.debug(f"API Football 返回: {data[0]['team']}")
             return process_api_football(data[0]['team'])
+    logger.warning(f"API Football 未找到球队: {name}, 状态码: {response.status_code}")
     return None
 
 def process_football_data(team: dict):
@@ -169,6 +203,7 @@ async def get_team_features(team_id: int, is_home: bool):
     matches = await get_recent_matches(team_id)
     valid_matches = [m for m in matches if m['status'] == 'FINISHED'][-5:]
     if not valid_matches:
+        logger.warning(f"球队 ID {team_id} 无有效比赛数据，返回默认值")
         return {'avg_goals': 0.0, 'win_rate': 0.0}
     
     total_goals = 0
@@ -180,10 +215,12 @@ async def get_team_features(team_id: int, is_home: bool):
         if goals > against:
             wins += 1
     
-    return {
+    features = {
         'avg_goals': round(total_goals / len(valid_matches), 2),
         'win_rate': round(wins / len(valid_matches), 2)
     }
+    logger.debug(f"球队 ID {team_id} 特征: {features}")
+    return features
 
 async def get_recent_matches(team_id: int, days=365):
     end_date = datetime.now().strftime('%Y-%m-%d')
@@ -194,15 +231,20 @@ async def get_recent_matches(team_id: int, days=365):
             headers=APIConfig.FOOTBALL_DATA['headers'],
             params={'dateFrom': start_date, 'dateTo': end_date, 'status': 'FINISHED', 'limit': 10}
         )
-        matches = response.json().get('matches', [])
-        return [{
-            'date': m['utcDate'],
-            'home_goals': m['score']['fullTime']['home'],
-            'away_goals': m['score']['fullTime']['away'],
-            'status': m['status']
-        } for m in matches]
+        if response.status_code == 200:
+            matches = response.json().get('matches', [])
+            result = [{
+                'date': m['utcDate'],
+                'home_goals': m['score']['fullTime']['home'],
+                'away_goals': m['score']['fullTime']['away'],
+                'status': m['status']
+            } for m in matches]
+            logger.debug(f"球队 ID {team_id} 最近比赛数据: {result}")
+            return result
+        logger.warning(f"获取比赛数据失败，状态码: {response.status_code}")
+        return []
     except Exception as e:
-        print(f"获取比赛数据失败: {str(e)}")
+        logger.error(f"获取比赛数据失败: {str(e)}")
         return []
 
 # ====================
@@ -213,11 +255,15 @@ async def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 @app.post("/predict/teams")
-async def predict_with_teams(data: TeamPredictionRequest):
+async def predict_with_teams(data: TeamPredictionRequest, response: Response):
+    # 确保响应头指定 UTF-8 编码
+    response.headers["Content-Type"] = "application/json; charset=utf-8"
+    
     if not model:
         raise HTTPException(500, "模型未加载")
     
     try:
+        logger.info(f"收到预测请求: 主队={data.home_team}, 客队={data.away_team}")
         # 获取球队信息
         home_info = await search_team(data.home_team)
         away_info = await search_team(data.away_team)
@@ -232,15 +278,17 @@ async def predict_with_teams(data: TeamPredictionRequest):
             away_features['avg_goals'],
             home_features['win_rate']
         ]])
+        logger.debug(f"模型输入: {input_data}")
         
         # 预测
         prediction = model.predict(input_data)[0]
+        logger.info(f"预测结果: {prediction}")
         
         # 确保 prediction 是可序列化的类型
         if isinstance(prediction, np.generic):
             prediction = prediction.item()
         
-        return {
+        result = {
             "prediction": prediction,
             "features": {
                 "home_team": home_info['name'],
@@ -250,9 +298,12 @@ async def predict_with_teams(data: TeamPredictionRequest):
                 "home_win_rate": home_features['win_rate']
             }
         }
+        logger.debug(f"返回结果: {result}")
+        return result
     except HTTPException as e:
         raise e
     except Exception as e:
+        logger.error(f"预测失败: {str(e)}")
         raise HTTPException(500, f"预测失败: {str(e)}")
 
 # ====================
