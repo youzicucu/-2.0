@@ -171,7 +171,7 @@
         }
 
         form.addEventListener('submit', async (e) => {
-            e.preventDefault();
+            e.preventDefault();  // 阻止表单默认提交行为
             
             const homeTeam = document.getElementById('home_team').value.trim();
             const awayTeam = document.getElementById('away_team').value.trim();
@@ -189,8 +189,9 @@
             const submitBtn = form.querySelector('button');
             try {
                 submitBtn.disabled = true;
-                submitBtn.innerHTML = '<div class="loader"></div> 数据采集中...';
+                submitBtn.textContent = '数据采集中...';
 
+                console.log('发送预测请求:', { home_team: homeTeam, away_team: awayTeam });
                 const response = await fetch('/predict/teams', {
                     method: 'POST',
                     headers: {
@@ -203,8 +204,46 @@
                 });
 
                 const data = await response.json();
+                console.log('后端返回数据:', data);
                 
-                if (!response.ok) throw new Error(data.detail || '预测失败');
+                if (!response.ok) {
+                    throw new Error(data.detail || '预测失败');
+                }
 
                 const prediction = data.prediction;
-                const features
+                const features = data.features;
+                
+                const details = `
+                    <ul class="stats-list">
+                        <li>
+                            <strong>主队: ${features.home_team}</strong>
+                            <div>场均进球：${features.home_avg_goals}</div>
+                            <div>近期胜率：${(features.home_win_rate * 100).toFixed(1)}%</div>
+                        </li>
+                        <li>
+                            <strong>客队: ${features.away_team}</strong>
+                            <div>场均进球：${features.away_avg_goals}</div>
+                            <div>近期胜率：${(features.away_win_rate * 100).toFixed(1)}%</div>
+                        </li>
+                    </ul>
+                `;
+
+                showResult({
+                    title: predictionMap[prediction]?.[0] || '未知结果',
+                    details: details
+                }, prediction);
+
+            } catch (error) {
+                console.error('预测请求错误:', error);
+                showResult({
+                    title: `❌ ${error.message}`,
+                    details: '请检查球队名称是否正确，或稍后重试'
+                }, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '开始智能分析';
+            }
+        });
+    </script>
+</body>
+</html>
