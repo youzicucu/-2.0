@@ -9,9 +9,9 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from fuzzywuzzy import fuzz
-from fastapi_cache2 import FastAPICache
-from fastapi_cache2.backends.redis import RedisCache  # 修改为 fastapi_cache2
-import aioredis
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.redis import RedisBackend
+import redis
 from dotenv import load_dotenv
 import pandas as pd
 
@@ -35,8 +35,8 @@ app.add_middleware(
 
 # 配置 Redis 缓存
 redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
-redis = aioredis.from_url(redis_url)
-FastAPICache.init(RedisCache(redis), prefix="football-cache")
+redis_client = redis.from_url(redis_url)
+FastAPICache.init(RedisBackend(redis_client), prefix="football-cache")
 
 # ====================
 # 配置部分
