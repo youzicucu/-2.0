@@ -69,7 +69,7 @@ except Exception as e:
 # 加载中文别名
 def load_aliases():
     try:
-        df = pd.read_csv("data/team_aliases.csv", encoding="utf-8")
+        df = pd.read_csv("data/team_aliases.csv", encoding="latin1")
         return {
             row['zh_name']: {
                 'id': row['id'],
