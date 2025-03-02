@@ -6,7 +6,7 @@ joblib==1.4.2
 pandas==2.2.2
 numpy==1.26.4
 redis==5.0.1
-fastapi-cache2==0.2.2
+fastapi-cache
 aioredis
 fuzzywuzzy==0.18.0
 python-Levenshtein==0.12.2
