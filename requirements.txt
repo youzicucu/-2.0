@@ -27,3 +27,4 @@ python-multipart==0.0.9  # 表单处理
 Jinja2>=3.0.0
 pendulum<3.0.0
 setuptools
+wheel
