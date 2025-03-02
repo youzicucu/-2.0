@@ -238,7 +238,6 @@ async def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 @app.post("/predict/teams")
-@cache(expire=3600)
 async def predict_with_teams(data: TeamPredictionRequest):
     if not model:
         raise HTTPException(500, "模型未加载")
