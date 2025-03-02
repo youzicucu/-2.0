@@ -5,8 +5,6 @@ scikit-learn==1.5.1
 joblib==1.4.2
 pandas==2.2.2
 numpy==1.26.4
-redis==5.0.1
-fastapi-cache
 fuzzywuzzy==0.18.0
 python-Levenshtein==0.12.2
 requests==2.31.0
@@ -15,5 +13,4 @@ apscheduler==3.10.1
 python-multipart==0.0.9
 Jinja2>=3.0.0
 pendulum>=3.0.0
-setuptools
-wheel
+cachetools
