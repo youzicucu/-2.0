@@ -9,9 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from fuzzywuzzy import fuzz
-from fastapi_cache import FastAPICache
-from fastapi_cache.backends.redis import RedisBackend
-import redis
+from cachetools import TTLCache
 from dotenv import load_dotenv
 import pandas as pd
 
@@ -33,10 +31,8 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-# 配置 Redis 缓存
-redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
-redis_client = redis.from_url(redis_url)
-FastAPICache.init(RedisBackend(redis_client), prefix="football-cache")
+# 配置缓存，使用 cachetools 的 TTLCache
+cache = TTLCache(maxsize=100, ttl=3600)  # 缓存100个条目，TTL为1小时
 
 # ====================
 # 配置部分
@@ -109,16 +105,15 @@ def chinese_to_en(team_name: str) -> str:
 async def search_team(team_name: str) -> dict:
     en_name = chinese_to_en(team_name)
     cache_key = f"team:{en_name}"
-    cached = await FastAPICache.get(cache_key)
-    if cached:
-        return cached
+    if cache_key in cache:
+        return cache[cache_key]
 
     sources = [search_football_data, search_api_football]
     for source in sources:
         try:
             result = await source(en_name)
             if result:
-                await FastAPICache.set(cache_key, result, expire=3600)
+                cache[cache_key] = result
                 return result
         except Exception as e:
             print(f"搜索失败: {str(e)}")
