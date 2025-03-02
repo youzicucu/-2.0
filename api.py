@@ -10,7 +10,13 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from fuzzywuzzy import fuzz
 from fastapi_cache import FastAPICache
-from fastapi_cache.backends.redis import RedisBackend
+from fastapi_cache.backends import RedisCache
+import aioredis
+from dotenv import load_dotenv
+# 初始化
+redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
+redis = aioredis.from_url(redis_url)
+FastAPICache.init(RedisCache(redis), prefix="football-cache")
 from fastapi_cache.decorator import cache
 from redis import asyncio as aioredis
 from dotenv import load_dotenv
@@ -114,7 +120,7 @@ async def search_team(team_name: str) -> dict:
     en_name = chinese_to_en(team_name)
     
     # 检查缓存
-    cached = await FastAPICache.get(f"team:{en_name}")
+    cached = FastAPICache.get(f"team:{en_name}")
     if cached:
         return cached
     
