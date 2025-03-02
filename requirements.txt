@@ -12,6 +12,7 @@ numpy==1.26.4  # pandas依赖项
 # 缓存与数据库
 redis==5.0.1
 fastapi-cache2
+fastapi-cache
 aioredis
 
 # 文本处理
