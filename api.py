@@ -9,13 +9,21 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from fuzzywuzzy import fuzz
+import os
+from fastapi import FastAPI
 from fastapi_cache2 import FastAPICache
-from fastapi_cache2.backends import RedisCache
+from fastapi_cache2.backends.redis import RedisCache
 import aioredis
-from dotenv import load_dotenv
-load_dotenv()
+
+app = FastAPI()
+
+# 从环境变量中获取 REDIS_URL
 redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
+
+# 创建 Redis 连接池
 redis = aioredis.from_url(redis_url)
+
+# 初始化 FastAPICache，使用 Redis 后端
 FastAPICache.init(RedisCache(redis), prefix="football-cache")
 from fastapi_cache.decorator import cache
 from redis import asyncio as aioredis
