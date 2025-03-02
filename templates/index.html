@@ -115,7 +115,7 @@
                 <input 
                     type="text" 
                     id="home_team" 
-                    placeholder="例如：Manchester City FC"
+                    placeholder="例如：曼城 或 Manchester City FC"
                     required
                 >
             </div>
@@ -125,7 +125,7 @@
                 <input 
                     type="text" 
                     id="away_team" 
-                    placeholder="例如：Liverpool FC"
+                    placeholder="例如：利物浦 或 Liverpool FC"
                     required
                 >
             </div>
@@ -135,13 +135,13 @@
 
         <div class="examples">
             <h3>💡 使用提示：</h3>
-            <p>请使用球队官方英文名称，示例：</p>
+            <p>支持中文名称或球队官方英文名称，示例：</p>
             <ul>
-                <li>Manchester United FC</li>
-                <li>FC Barcelona</li>
-                <li>Bayern Munich</li>
-                <li>Paris Saint-Germain</li>
-                <li>Juventus FC</li>
+                <li>曼联 或 Manchester United FC</li>
+                <li>曼城 或 Manchester City FC</li>
+                <li>利物浦 或 Liverpool FC</li>
+                <li>切尔西 或 Chelsea FC</li>
+                <li>拜仁慕尼黑 或 Bayern Munich</li>
             </ul>
         </div>
         
@@ -213,13 +213,14 @@
                 const details = `
                     <ul class="stats-list">
                         <li>
-                            <strong>${features.home_team}</strong>
+                            <strong>主队: ${features.home_team}</strong>
                             <div>场均进球：${features.home_avg_goals}</div>
                             <div>近期胜率：${(features.home_win_rate * 100).toFixed(1)}%</div>
                         </li>
                         <li>
-                            <strong>${features.away_team}</strong>
+                            <strong>客队: ${features.away_team}</strong>
                             <div>场均进球：${features.away_avg_goals}</div>
+                            <div>近期胜率：${(features.home_win_rate * 100).toFixed(1)}%</div>
                         </li>
                     </ul>
                 `;
